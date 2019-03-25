@@ -7,7 +7,7 @@ using System.IO;
 
 namespace HashTable
 {
-    public class HashTable
+    public class HashTable : HashTableInt
     {
         private readonly double loadFactor = 0.75;
 
@@ -17,15 +17,18 @@ namespace HashTable
         private int capacity;
         private int chainsCount;
 
+        public override int operationsCount { get; set; }
+
         public HashTable(int capacity = 10)
         {
             this.capacity = capacity;
             this.table = new Entry[capacity];
             this.size = 0;
             this.chainsCount = 0;
+            this.operationsCount = 0;
         }
 
-        public double Put(string key, double value)
+        public override double Put(string key, double value)
         {
             if(key == null)
             {
@@ -50,28 +53,46 @@ namespace HashTable
             return value;
         }
 
-        public double? Get(string key)
+        public override double? Get(string key)
         {
+            operationsCount++;
             if (key == null)
+            {
+                operationsCount++;
                 throw new ArgumentNullException("Key is null in Get(string key)");
+            }
 
             int index = Hash(key);
             int tempIndex = index;
             int j = 0;
+            operationsCount += 4;
             for(int i = 0; i < table.Length; i++)
             {
+                operationsCount++;
+
                 if (table[index] == null)
+                {
+                    operationsCount++;
                     return null;
+                }
+                operationsCount++;
                 if (table[index].key.Equals(key))
+                {
+                    operationsCount++;
                     return table[index].value;
+                }
                 j++;
                 index = (tempIndex + j) % table.Length;
+                operationsCount += 2;
             }
+
+            operationsCount++;
             return null;
         }
 
-        public bool Contains(string key)
+        public override bool Contains(string key)
         {
+            operationsCount++;
             return Get(key) == null ? false : true;
         }
 

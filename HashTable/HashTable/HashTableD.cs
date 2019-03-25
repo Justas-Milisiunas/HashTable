@@ -7,7 +7,7 @@ using System.IO;
 
 namespace HashTable
 {
-    class HashTableD
+    class HashTableD : HashTableInt
     {
         private readonly double loadFactor = 0.75;
         private FileStream fs { get; set; }
@@ -19,6 +19,8 @@ namespace HashTable
         private int keySize = 8;
         private int chainsCount;
 
+        public override int operationsCount { get; set; }
+
 
         public HashTableD(int capacity = 10, int keySize = 8,string fileName = "hashfile.dat")
         {
@@ -27,6 +29,7 @@ namespace HashTable
             this.chainsCount = 0;
             this.fileName = fileName;
             this.keySize = keySize;
+            this.operationsCount = 0;
 
             if (File.Exists(this.fileName))
                 File.Delete(this.fileName);
@@ -35,7 +38,7 @@ namespace HashTable
             ResetTable();
         }
 
-        public double Put(string key, double value)
+        public override double Put(string key, double value)
         {
             if (key == null)
             {
@@ -70,14 +73,19 @@ namespace HashTable
             return value;
         }
 
-        public double? Get(string key)
+        public override double? Get(string key)
         {
+            operationsCount++;
             if (key == null)
+            {
+                operationsCount++;
                 throw new ArgumentNullException("Key is null in Get(string key)");
+            }
 
             int index = Hash(key);
             int tempIndex = index;
             int j = 0;
+            operationsCount += 4;
 
             for (int i = 0; i < capacity; i++)
             {
@@ -88,17 +96,29 @@ namespace HashTable
                 string tempKey = Encoding.UTF8.GetString(data, 0, keySize);
                 double tempValue = BitConverter.ToDouble(data, keySize);
 
+                operationsCount += 6;
                 if (tempKey == "\0\0\0\0\0\0\0\0")
+                {
+                    operationsCount++;
                     return null;
+
+                }
+                operationsCount++;
                 if (tempKey.Equals(key))
+                {
+                    operationsCount++;
                     return tempValue;
+                }
                 j++;
                 index = (tempIndex + j) % capacity;
+                operationsCount += 2;
             }
+
+            operationsCount++;
             return null;
         }
 
-        public bool Contains(string key)
+        public override bool Contains(string key)
         {
             return Get(key) == null ? false : true;
         }

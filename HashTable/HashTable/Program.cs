@@ -10,77 +10,107 @@ namespace HashTable
 {
     class Program
     {
+        public static readonly int[] KIEKIAI = new int[] { 250, 750, 2500, 10_000, 50_000, 150_000, 500_000 };
+
         static void Main(string[] args)
         {
-            int n = 10000000;
-            int seed = 121;
-            string dataFile = "data-file.txt";
-            string[] keys = new string[n];
-
-            keys = GenerateDataFile(dataFile, n, seed);
-            TestHashTable_D(dataFile, n, seed, keys);
-            //TestHashTable_OP(dataFile, n, seed, keys);
-
-            Console.ReadKey();
-        }
-
-        public static void TestHashTable_OP(string dataFile, int n, int seed, string[] keys)
-        {
-            //Reads data from file
-            HashTable lentele = new HashTable();
-            using (StreamReader reader = new StreamReader(dataFile))
-            {
-                int i = 0;
-                string line = null;
-                while((line = reader.ReadLine()) != null)
-                {
-                    string[] words = line.Split(' ');
-                    lentele.Put(words[0], double.Parse(words[1]));
-                    keys[i++] = words[0];
-                }
-            }
-
-            int sum = 0;
-            Stopwatch t1 = new Stopwatch();
-            t1.Start();
-            for (int i = 0; i < n; i++)
-            {
-                if (lentele.Contains(keys[i]))
-                    sum++;
-            }
-            t1.Stop();
-
-            Console.WriteLine(sum == n ? "Rado visus" : "Visu nerado");
-            Console.WriteLine("Uztruko: " + t1.Elapsed);
-
-            lentele = null;
-            keys = null;
-            GC.Collect();
-        }
-
-        public static void TestHashTable_D(string dataFile, int n, int seed, string[] keys)
-        {
-            HashTableD table = new HashTableD();
-            ReadData(dataFile, table);
-
-            int sum = 0;
-            for(int i = 0; i < n; i++)
-            {
-                if (table.Contains(keys[i]))
-                    sum++;
-            }
-
-            Console.WriteLine(table.ToString());
-            Console.WriteLine("Rasta: " + sum);
+            int seed = (int)DateTime.Now.Ticks & 0x0000FFFF;
 
             while(true)
             {
+                Console.WriteLine("Ka norite istestuoti?");
+                Console.WriteLine("hash_op hash_d all exit");
+
                 string input = Console.ReadLine();
-                Console.WriteLine("Value: " + table.Get(input));
+                if (input.ToLower() == "hash_op")
+                    TestHashTable_OP(seed);
+                else if (input.ToLower() == "hash_d")
+                    TestHashTable_D(seed);
+                else if (input.ToLower() == "all")
+                {
+                    TestHashTable_OP(seed);
+                    TestHashTable_D(seed);
+                }
+                else
+                    break;
             }
         }
 
-        public static void ReadData(string dataFile, HashTableD table)
+        public static void TestHashTable_OP(int seed)
+        {
+            StringBuilder builder = new StringBuilder();
+            builder.AppendLine("HASHTABLE OP");
+            builder.AppendLine("=============================================================================");
+            builder.AppendLine("| Number of elements |        |    Runtime time   |        |   Operations   |");
+            builder.AppendLine("===================================HASHTABLE-OP==============================");
+
+            foreach (int count in KIEKIAI)
+            {
+                HashTableInt lentele = new HashTable();
+                string[] keys = GenerateDataFile(count.ToString() + ".txt", count, seed);
+                ReadData(count.ToString() + ".txt", lentele);
+
+                //int sum = 0;
+                Stopwatch t1 = new Stopwatch();
+                t1.Start();
+                for (int i = 0; i < count; i++)
+                {
+                    lentele.Contains(keys[i]);
+                    //if(lentele.Contains(keys[i]))
+                        //sum++;
+                }
+                t1.Stop();
+
+                //Console.WriteLine("Rado: " + sum);
+                //Console.WriteLine("Uztruko: " + t1.Elapsed);
+                builder.AppendLine(string.Format("|{0,-20}|        |{1} ms|        |{2,-16}|", count, t1.Elapsed.ToString(), lentele.operationsCount));
+                //Console.WriteLine(lentele.ToString());
+                lentele = null;
+                GC.Collect();
+            }
+
+            builder.AppendLine("=============================================================================");
+            Console.Write(builder.ToString());
+        }
+
+        public static void TestHashTable_D(int seed)
+        {
+            StringBuilder builder = new StringBuilder();
+            builder.AppendLine("HASHTABLE D");
+            builder.AppendLine("=============================================================================");
+            builder.AppendLine("| Number of elements |        |    Runtime time   |        |   Operations   |");
+            builder.AppendLine("===================================HASHTABLE-D===============================");
+
+            foreach(int count in KIEKIAI)
+            {
+                HashTableInt table = new HashTableD();
+                string[] keys = GenerateDataFile(count.ToString() + ".txt", count, seed);
+                ReadData(count.ToString() + ".txt", table);
+
+                //int sum = 0;
+                Stopwatch t1 = new Stopwatch();
+                t1.Start();
+                for (int i = 0; i < count; i++)
+                {
+                    table.Contains(keys[i]);
+                    //if (table.Contains(keys[i]))
+                        //sum++;
+                }
+                t1.Stop();
+
+                //Console.WriteLine("Rado: " + sum);
+                //Console.WriteLine("Uztruko: " + t1.Elapsed);
+                builder.AppendLine(string.Format("|{0,-20}|        |{1} ms|        |{2,-16}|", count, t1.Elapsed.ToString(), table.operationsCount));
+
+                table = null;
+                GC.Collect();
+            }
+
+            builder.AppendLine("=============================================================================");
+            Console.Write(builder.ToString());
+        }
+
+        public static void ReadData(string dataFile, HashTableInt table)
         {
             using (StreamReader reader = new StreamReader(dataFile))
             {
@@ -99,16 +129,6 @@ namespace HashTable
             using (StreamWriter writer = new StreamWriter(fileName))
             {
                 Random rand = new Random(seed);
-                //writer.WriteLine(12345678 + " " + rand.NextDouble());
-                //writer.WriteLine(11345678 + " " + rand.NextDouble());
-                //writer.WriteLine(11145678 + " " + rand.NextDouble());
-                //writer.WriteLine(11115678 + " " + rand.NextDouble());
-                //writer.WriteLine(11115678 + " " + 111);
-                //writer.WriteLine(11111678 + " " + rand.NextDouble());
-                //writer.WriteLine(11111678 + " " + rand.NextDouble());
-                //writer.WriteLine(11111678 + " " + rand.NextDouble());
-                //writer.WriteLine(11111678 + " " + rand.NextDouble());
-                //writer.WriteLine(11111678 + " " + rand.NextDouble());
                 for (int i = 0; i < n; i++)
                 {
                     string key = rand.Next(10000000, 99999999).ToString();
