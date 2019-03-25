@@ -7,80 +7,115 @@ using System.IO;
 
 namespace HashTable
 {
-    public class HashTable
+    public class HashTable : HashTableInt
     {
-        private static readonly double loadFactor = 0.75;
+        private readonly double loadFactor = 0.75;
 
-        private Node[] table;
+        private Entry[] table;
+
         private int size;
         private int capacity;
         private int chainsCount;
 
+        public override int operationsCount { get; set; }
+
         public HashTable(int capacity = 10)
         {
             this.capacity = capacity;
-            this.table = new Node[capacity];
+            this.table = new Entry[capacity];
+            this.size = 0;
+            this.chainsCount = 0;
+            this.operationsCount = 0;
         }
 
-        public Boolean Contains(string key)
+        public override double Put(string key, double value)
         {
-            return Get(key) != null;
-        }
-
-        public double Put(string key, double value)
-        {
-            if(key == null || value == null)
+            if(key == null)
             {
                 throw new ArgumentException("Key or value is null in Put(string key, double value)");
             }
 
-            int index = Hash(key);
-            if(table[index] == null)
+            int foundIndex = FindPosition(key);
+            if(foundIndex == -1)
             {
-                chainsCount++;
-            }
-
-            Node node = GetInChain(key, table[index]);
-            if(node == null)
-            {
-                Node tmp = new Node(key, value, table[index]);
-                table[index] = tmp;
-                size++;
-
-                if(size > this.capacity * loadFactor)
-                    Rehash(this.capacity * 2);
+                Rehash(capacity * 2);
+                Put(key, value);
             }
             else
-                node.value = value;
+            {
+                table[foundIndex] = new Entry(key, value);
+                size++;
+
+                if (size > capacity * loadFactor)
+                    Rehash(capacity * 2);
+            }
 
             return value;
         }
 
-        public double Get(string key)
+        public override double? Get(string key)
         {
+            operationsCount++;
             if (key == null)
+            {
+                operationsCount++;
                 throw new ArgumentNullException("Key is null in Get(string key)");
+            }
 
             int index = Hash(key);
-            Node node = GetInChain(key, table[index]);
+            int tempIndex = index;
+            int j = 0;
+            operationsCount += 4;
+            for(int i = 0; i < table.Length; i++)
+            {
+                operationsCount++;
 
-            return (node != null) ? node.value : -1;
+                if (table[index] == null)
+                {
+                    operationsCount++;
+                    return null;
+                }
+                operationsCount++;
+                if (table[index].key.Equals(key))
+                {
+                    operationsCount++;
+                    return table[index].value;
+                }
+                j++;
+                index = (tempIndex + j) % table.Length;
+                operationsCount += 2;
+            }
+
+            operationsCount++;
+            return null;
         }
 
-        private Node GetInChain(string key, Node node)
+        public override bool Contains(string key)
+        {
+            operationsCount++;
+            return Get(key) == null ? false : true;
+        }
+
+        private int FindPosition(string key)
         {
             if (key == null)
                 throw new ArgumentNullException("Key is null");
 
-            int chainSize = 0;
-            for(Node i = node; i != null; i = i.next)
+            int index = Hash(key);
+            int tempIndex = index;
+            int i = 0;
+
+            for(int j = 0; j < table.Length; j++)
             {
-                chainSize++;
-                if ((i.key).Equals(key))
-                    return i;
+                if(table[index] == null || table[index].key.Equals(key))
+                {
+                    return index;
+                }
+                i++;
+                index = (tempIndex + i) % table.Length;
             }
 
-            return null;
+            return -1;
         }
 
         private void Rehash(int capacity)
@@ -88,11 +123,8 @@ namespace HashTable
             HashTable newHT = new HashTable(capacity);
             for(int i = 0; i < table.Length; i++)
             {
-                while(table[i] != null)
-                {
+                if(table[i] != null)
                     newHT.Put(table[i].key, table[i].value);
-                    table[i] = table[i].next;
-                }
             }
 
             this.table = newHT.table;
@@ -104,14 +136,15 @@ namespace HashTable
         public override string ToString()
         {
             StringBuilder output = new StringBuilder();
-            for(int i = 0; i < table.Length; i++)
+            for (int i = 0; i < table.Length; i++)
             {
-                while(table[i] != null)
+                output.Append(string.Format("[{0}] ->", i));
+                if (table[i] != null)
                 {
-                    output.Append(table[i].value + " ");
-                    table[i] = table[i].next;
+                    output.Append(string.Format("{0} [{1}]", table[i].value, Hash(table[i].key)));
                 }
-                output.AppendLine();
+
+                output.Append("\n");
             }
 
             return output.ToString();
@@ -122,19 +155,17 @@ namespace HashTable
             return Math.Abs(key.GetHashCode()) % capacity;
         }
 
-        private class Node
+        protected class Entry
         {
             public string key;
             public double value;
-            public Node next;
 
-            public Node() { }
+            public Entry() { }
 
-            public Node(string key, double value, Node next)
+            public Entry(string key, double value)
             {
                 this.key = key;
                 this.value = value;
-                this.next = next;
             }
         }
     }
